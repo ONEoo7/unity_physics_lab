@@ -24,10 +24,20 @@ namespace PhysicsLab.Experiments.Chladni
 
         [Header("UI")]
         [SerializeField] private Slider frequencySlider;
+        [SerializeField] private Slider tiltSlider;
         [SerializeField] private Toggle audioToggle;
         [SerializeField] private Button resetButton;
         [SerializeField] private TMP_Text frequencyLabel;
         [SerializeField] private TMP_Text modeLabel;
+        [SerializeField] private TMP_Text tiltLabel;
+
+        [Header("Camera")]
+        [SerializeField] private Transform viewCamera;
+        [SerializeField] private Vector3 cameraTarget = new Vector3(0f, 0.9f, 0f);
+        [SerializeField] private float cameraDistance = 1.6f;
+        [SerializeField] private float minTilt = 5f;
+        [SerializeField] private float maxTilt = 85f;
+        [SerializeField] private float defaultTilt = 30f;
 
         [Header("Modes")]
         [SerializeField] private float minFrequency = 100f;
@@ -78,14 +88,24 @@ namespace PhysicsLab.Experiments.Chladni
             }
             if (resetButton != null) resetButton.onClick.AddListener(ResetGrains);
 
+            if (tiltSlider != null)
+            {
+                tiltSlider.minValue = minTilt;
+                tiltSlider.maxValue = maxTilt;
+                tiltSlider.value = Mathf.Clamp(defaultTilt, minTilt, maxTilt);
+                tiltSlider.onValueChanged.AddListener(SetTilt);
+            }
+
             SetFrequency(frequencySlider != null ? frequencySlider.value : 220f);
             SetAudio(audioToggle != null && audioToggle.isOn);
+            SetTilt(tiltSlider != null ? tiltSlider.value : defaultTilt);
         }
 
         protected override void OnDisable()
         {
             base.OnDisable();
             if (frequencySlider != null) frequencySlider.onValueChanged.RemoveListener(SetFrequency);
+            if (tiltSlider != null) tiltSlider.onValueChanged.RemoveListener(SetTilt);
             if (audioToggle != null) audioToggle.onValueChanged.RemoveListener(SetAudio);
             if (resetButton != null) resetButton.onClick.RemoveListener(ResetGrains);
             if (pendingReset != null) { StopCoroutine(pendingReset); pendingReset = null; }
@@ -133,6 +153,19 @@ namespace PhysicsLab.Experiments.Chladni
         private void SetAudio(bool on)
         {
             if (sineTone != null) sineTone.Muted = !on;
+        }
+
+        // Orbit the camera around the plate at a fixed distance, keeping it pointed
+        // at cameraTarget. tiltDegrees = 0 is side-on, 90 is straight overhead.
+        private void SetTilt(float tiltDegrees)
+        {
+            if (viewCamera == null) return;
+            float clamped = Mathf.Clamp(tiltDegrees, minTilt, maxTilt);
+            float rad = clamped * Mathf.Deg2Rad;
+            var offset = new Vector3(0f, Mathf.Sin(rad), -Mathf.Cos(rad)) * cameraDistance;
+            viewCamera.position = cameraTarget + offset;
+            viewCamera.rotation = Quaternion.LookRotation((cameraTarget - viewCamera.position).normalized, Vector3.up);
+            if (tiltLabel != null) tiltLabel.text = $"Tilt {clamped:F0}°";
         }
 
         private void ResetGrains()

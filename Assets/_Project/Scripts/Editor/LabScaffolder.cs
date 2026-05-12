@@ -434,18 +434,21 @@ namespace PhysicsLab.EditorTools
             camComp.backgroundColor = new Color(0.08f, 0.09f, 0.11f);
 
             // UI for controls + exit.
-            var ui = CreateChladniUi(out var slider, out var audioToggle, out var resetButton,
-                out var freqLabel, out var modeLabel, out var exitButton, inputAsset);
+            var ui = CreateChladniUi(out var slider, out var tiltSliderUi, out var audioToggle, out var resetButton,
+                out var freqLabel, out var modeLabel, out var tiltLabel, out var exitButton, inputAsset);
 
             var soExp = new SerializedObject(experiment);
             soExp.FindProperty("simulator").objectReferenceValue = simulator;
             soExp.FindProperty("sineTone").objectReferenceValue = sine;
             soExp.FindProperty("plateVisual").objectReferenceValue = plateMesh.transform;
             soExp.FindProperty("frequencySlider").objectReferenceValue = slider;
+            soExp.FindProperty("tiltSlider").objectReferenceValue = tiltSliderUi;
             soExp.FindProperty("audioToggle").objectReferenceValue = audioToggle;
             soExp.FindProperty("resetButton").objectReferenceValue = resetButton;
             soExp.FindProperty("frequencyLabel").objectReferenceValue = freqLabel;
             soExp.FindProperty("modeLabel").objectReferenceValue = modeLabel;
+            soExp.FindProperty("tiltLabel").objectReferenceValue = tiltLabel;
+            soExp.FindProperty("viewCamera").objectReferenceValue = cam.transform;
 
             // ExperimentBase.definition is private in the base class — set via SerializedObject.
             var defProp = soExp.FindProperty("definition");
@@ -457,8 +460,10 @@ namespace PhysicsLab.EditorTools
         }
 
         private static GameObject CreateChladniUi(
-            out Slider slider, out Toggle audioToggle, out Button resetButton,
-            out TMP_Text freqLabel, out TMP_Text modeLabel, out Button exitButton,
+            out Slider slider, out Slider tiltSliderOut,
+            out Toggle audioToggle, out Button resetButton,
+            out TMP_Text freqLabel, out TMP_Text modeLabel, out TMP_Text tiltLabelOut,
+            out Button exitButton,
             InputActionAsset inputAsset)
         {
             var canvasGo = new GameObject("UI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -469,7 +474,7 @@ namespace PhysicsLab.EditorTools
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            // Panel anchored bottom-center.
+            // Panel anchored bottom-center. Taller now to fit the tilt slider row.
             var panel = new GameObject("ControlPanel", typeof(RectTransform), typeof(Image));
             panel.transform.SetParent(canvasGo.transform, false);
             var prt = panel.GetComponent<RectTransform>();
@@ -477,36 +482,47 @@ namespace PhysicsLab.EditorTools
             prt.anchorMax = new Vector2(0.5f, 0f);
             prt.pivot = new Vector2(0.5f, 0f);
             prt.anchoredPosition = new Vector2(0f, 32f);
-            prt.sizeDelta = new Vector2(800f, 220f);
+            prt.sizeDelta = new Vector2(800f, 290f);
             panel.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f);
 
             freqLabel = CreateUiText(panel.transform, "FreqLabel", "220 Hz",
                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -32f),
-                fontSize: 36, alignment: TextAlignmentOptions.Center);
+                fontSize: 32, alignment: TextAlignmentOptions.Center);
             var frt = (RectTransform)freqLabel.transform;
-            frt.sizeDelta = new Vector2(0f, 48f);
+            frt.sizeDelta = new Vector2(0f, 44f);
 
             modeLabel = CreateUiText(panel.transform, "ModeLabel", "(1, 2)",
-                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -80f),
-                fontSize: 22, alignment: TextAlignmentOptions.Center);
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -72f),
+                fontSize: 20, alignment: TextAlignmentOptions.Center);
             var mrt = (RectTransform)modeLabel.transform;
-            mrt.sizeDelta = new Vector2(0f, 32f);
+            mrt.sizeDelta = new Vector2(0f, 26f);
             modeLabel.color = new Color(0.85f, 0.85f, 0.85f);
 
             slider = CreateUiSlider(panel.transform, "FrequencySlider",
-                new Vector2(0.05f, 0.4f), new Vector2(0.95f, 0.55f));
+                new Vector2(0.05f, 0.56f), new Vector2(0.95f, 0.66f));
             slider.minValue = 100f;
             slider.maxValue = 1850f;
             slider.value = 220f;
 
+            // Tilt row: label on the left, slider on the right.
+            tiltLabelOut = CreateUiText(panel.transform, "TiltLabel", "Tilt 30°",
+                new Vector2(0.05f, 0.40f), new Vector2(0.20f, 0.52f), Vector2.zero,
+                fontSize: 20, alignment: TextAlignmentOptions.MidlineLeft);
+
+            tiltSliderOut = CreateUiSlider(panel.transform, "TiltSlider",
+                new Vector2(0.22f, 0.42f), new Vector2(0.95f, 0.52f));
+            tiltSliderOut.minValue = 5f;
+            tiltSliderOut.maxValue = 85f;
+            tiltSliderOut.value = 30f;
+
             audioToggle = CreateUiToggle(panel.transform, "AudioToggle", "Audio",
-                new Vector2(0.05f, 0.05f), new Vector2(0.3f, 0.25f));
+                new Vector2(0.05f, 0.05f), new Vector2(0.3f, 0.22f));
 
             resetButton = CreateUiButton(panel.transform, "ResetButton", "Reset",
-                new Vector2(0.35f, 0.05f), new Vector2(0.65f, 0.25f));
+                new Vector2(0.35f, 0.05f), new Vector2(0.65f, 0.22f));
 
             exitButton = CreateUiButton(panel.transform, "ExitButton", "Back to Lab",
-                new Vector2(0.70f, 0.05f), new Vector2(0.95f, 0.25f));
+                new Vector2(0.70f, 0.05f), new Vector2(0.95f, 0.22f));
             var exit = exitButton.gameObject.AddComponent<ExitExperimentButton>();
             var soExit = new SerializedObject(exit);
             soExit.FindProperty("button").objectReferenceValue = exitButton;
