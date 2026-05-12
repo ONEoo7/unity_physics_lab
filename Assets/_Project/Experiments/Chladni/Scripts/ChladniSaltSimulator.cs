@@ -11,7 +11,10 @@ namespace PhysicsLab.Experiments.Chladni
         [Header("Plate")]
         [SerializeField] private Transform plate;
         [SerializeField] private float plateSize = 1.0f;
-        [SerializeField] private float grainLift = 0.005f;
+        // The plate cube is 0.02m thick (half-thickness 0.01m above pivot), so the lift
+        // must clear that, otherwise grains render inside the plate volume and only the
+        // ones that wander past the edges are visible.
+        [SerializeField] private float grainLift = 0.02f;
 
         [Header("Grains")]
         [SerializeField] private Mesh grainMesh;
