@@ -10,6 +10,11 @@ namespace PhysicsLab.Core
 
         public ExperimentDefinition Definition => definition;
 
+        // Override per experiment if it wants a locked cursor (e.g., a free-look
+        // viewer). Default is "visible mouse for UI interaction".
+        protected virtual CursorLockMode DesiredCursorLockMode => CursorLockMode.None;
+        protected virtual bool DesiredCursorVisible => true;
+
         private readonly List<AudioListener> suppressedListeners = new();
         private readonly List<EventSystem> suppressedEventSystems = new();
 
@@ -19,6 +24,7 @@ namespace PhysicsLab.Core
                 LabManager.Instance.ExperimentExited += HandleExited;
 
             SuppressOtherScenes();
+            ApplyCursor();
         }
 
         protected virtual void OnDisable()
@@ -29,6 +35,16 @@ namespace PhysicsLab.Core
             RestoreOtherScenes();
         }
 
+        // Unity unlocks the cursor when the Game window loses focus and re-locks
+        // to whatever state was active before focus loss when it returns. After
+        // entering an experiment from the hub, that means the cursor re-locks
+        // (hub state) on focus return, hiding it. Re-assert our preference here.
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!isActiveAndEnabled || !focused) return;
+            ApplyCursor();
+        }
+
         public void RequestExit()
         {
             if (LabManager.Instance != null)
@@ -36,6 +52,12 @@ namespace PhysicsLab.Core
         }
 
         protected virtual void HandleExited() { }
+
+        private void ApplyCursor()
+        {
+            Cursor.lockState = DesiredCursorLockMode;
+            Cursor.visible = DesiredCursorVisible;
+        }
 
         private void SuppressOtherScenes()
         {

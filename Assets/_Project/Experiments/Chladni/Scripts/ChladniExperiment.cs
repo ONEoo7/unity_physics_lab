@@ -64,10 +64,6 @@ namespace PhysicsLab.Experiments.Chladni
         {
             base.OnEnable();
 
-            // This experiment is mouse-driven (slider/buttons), so claim the cursor.
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-
             if (frequencySlider != null)
             {
                 frequencySlider.minValue = minFrequency;
