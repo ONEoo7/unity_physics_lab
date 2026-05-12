@@ -20,7 +20,6 @@ namespace PhysicsLab.Experiments.Chladni
         [SerializeField] private ChladniSaltSimulator simulator;
         [SerializeField] private ChladniSineTone sineTone;
         [SerializeField] private Transform plateVisual;
-        [SerializeField] private float plateVibrationVisualScale = 0.002f;
 
         [Header("UI")]
         [SerializeField] private Slider frequencySlider;
@@ -35,7 +34,6 @@ namespace PhysicsLab.Experiments.Chladni
         [SerializeField] private ModeEntry[] modes = DefaultModes();
 
         private float currentFrequency;
-        private Vector3 plateBasePosition;
 
         private static ModeEntry[] DefaultModes() => new[]
         {
@@ -78,7 +76,6 @@ namespace PhysicsLab.Experiments.Chladni
                 audioToggle.onValueChanged.AddListener(SetAudio);
             }
             if (resetButton != null) resetButton.onClick.AddListener(ResetGrains);
-            if (plateVisual != null) plateBasePosition = plateVisual.localPosition;
 
             SetFrequency(frequencySlider != null ? frequencySlider.value : 220f);
             SetAudio(audioToggle != null && audioToggle.isOn);
@@ -90,19 +87,6 @@ namespace PhysicsLab.Experiments.Chladni
             if (frequencySlider != null) frequencySlider.onValueChanged.RemoveListener(SetFrequency);
             if (audioToggle != null) audioToggle.onValueChanged.RemoveListener(SetAudio);
             if (resetButton != null) resetButton.onClick.RemoveListener(ResetGrains);
-        }
-
-        private void Update()
-        {
-            // Subtle plate bobbing visualization at a fraction of true frequency,
-            // so we can see the vibration without flickering at 1 kHz.
-            if (plateVisual != null)
-            {
-                float visualFreq = Mathf.Min(currentFrequency * 0.02f, 20f);
-                float wobble = Mathf.Sin(Time.time * visualFreq * Mathf.PI * 2f);
-                plateVisual.localPosition = plateBasePosition
-                                            + new Vector3(0f, wobble * plateVibrationVisualScale, 0f);
-            }
         }
 
         private void SetFrequency(float frequency)

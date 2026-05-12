@@ -18,12 +18,13 @@ namespace PhysicsLab.Experiments.Chladni
         [SerializeField] private Material grainMaterial;
         [SerializeField, Min(64)] private int desktopGrainCount = 20000;
         [SerializeField, Min(64)] private int mobileGrainCount = 5000;
-        [SerializeField] private float grainScale = 0.005f;
+        [SerializeField] private float grainScale = 0.008f;
 
         [Header("Tuning")]
-        [SerializeField] private float driftStrength = 0.08f;
-        [SerializeField] private float jitterStrength = 0.6f;
-        [SerializeField, Range(0f, 1f)] private float settleDamping = 0.04f;
+        [SerializeField] private float driftStrength = 0.4f;
+        [SerializeField] private float jitterStrength = 0.12f;
+        [SerializeField, Range(0f, 1f)] private float settleDamping = 0.05f;
+        [SerializeField] private float maxStepPerFrame = 0.02f;
 
         private NativeArray<float2> positions;
         private NativeArray<uint> randomStates;
@@ -93,6 +94,7 @@ namespace PhysicsLab.Experiments.Chladni
                 DriftStrength = driftStrength,
                 JitterStrength = jitterStrength,
                 SettleDamping = settleDamping,
+                MaxStepPerFrame = maxStepPerFrame,
                 DeltaTime = Time.deltaTime,
                 PlateOrigin = origin,
                 PlateSize = plateSize,

@@ -24,6 +24,7 @@ namespace PhysicsLab.Experiments.Chladni
         public float DriftStrength;     // how strongly grains flow down |u|^2 gradient
         public float JitterStrength;    // bouncing intensity, scaled by local |u|
         public float SettleDamping;     // 0..1, fraction of jitter that survives at zero amplitude
+        public float MaxStepPerFrame;   // hard cap on |Δposition| per frame, in plate-fraction units
         public float DeltaTime;
 
         // World placement of the plate.
@@ -51,7 +52,13 @@ namespace PhysicsLab.Experiments.Chladni
             float2 rnd = new float2(NextSymmetric(ref state), NextSymmetric(ref state));
             RandomStates[index] = state;
 
-            p += (drift + rnd * jitterScale) * DeltaTime;
+            // Cap per-frame displacement so high-mode gradients (∝ n·π) can't fling
+            // grains across the plate in a single step.
+            float2 step = (drift + rnd * jitterScale) * DeltaTime;
+            float stepLen = math.length(step);
+            if (stepLen > MaxStepPerFrame && stepLen > 1e-6f)
+                step *= MaxStepPerFrame / stepLen;
+            p += step;
 
             // Reflect off plate edges.
             if (p.x < 0f) { p.x = -p.x; }
