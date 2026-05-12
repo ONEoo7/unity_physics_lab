@@ -37,6 +37,9 @@
 # Visual Studio cache directory
 .vs/
 
+# Claude Code worktrees (do not commit ephemeral worktree checkouts)
+.claude/worktrees/
+
 # Gradle cache directory
 .gradle/
 
