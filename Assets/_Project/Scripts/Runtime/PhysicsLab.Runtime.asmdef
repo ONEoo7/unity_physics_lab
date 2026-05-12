@@ -1,0 +1,23 @@
+{
+    "name": "PhysicsLab.Runtime",
+    "rootNamespace": "PhysicsLab",
+    "references": [
+        "Unity.InputSystem",
+        "Unity.Mathematics",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

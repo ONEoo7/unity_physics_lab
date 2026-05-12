@@ -1,0 +1,23 @@
+{
+    "name": "PhysicsLab.Editor",
+    "rootNamespace": "PhysicsLab.EditorTools",
+    "references": [
+        "PhysicsLab.Runtime",
+        "PhysicsLab.Chladni",
+        "Unity.InputSystem",
+        "Unity.Mathematics",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
