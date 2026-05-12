@@ -55,14 +55,25 @@ namespace PhysicsLab.Framework
             lookAction?.Enable();
             jumpAction?.Enable();
             sprintAction?.Enable();
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            ApplyFocus(Application.isFocused);
         }
 
         private void OnDisable()
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!enabled) return;
+            ApplyFocus(focused);
+        }
+
+        private void ApplyFocus(bool focused)
+        {
+            Cursor.lockState = focused ? CursorLockMode.Locked : CursorLockMode.None;
+            Cursor.visible = !focused;
         }
 
         private void Update()
@@ -73,7 +84,9 @@ namespace PhysicsLab.Framework
 
         private void HandleLook()
         {
-            if (cameraPivot == null || lookAction == null) return;
+            // Skip mouse-look while the game window doesn't have focus —
+            // otherwise dragging in the Scene view rotates the player.
+            if (cameraPivot == null || lookAction == null || !Application.isFocused) return;
             var delta = lookAction.ReadValue<Vector2>();
             yaw += delta.x * lookSensitivity;
             pitch = Mathf.Clamp(pitch - delta.y * lookSensitivity, pitchMin, pitchMax);
@@ -83,7 +96,11 @@ namespace PhysicsLab.Framework
 
         private void HandleMove()
         {
-            var input = moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
+            // Same focus gate for movement — held WASD shouldn't keep the player
+            // walking while you're typing in another Unity window.
+            var input = moveAction != null && Application.isFocused
+                ? moveAction.ReadValue<Vector2>()
+                : Vector2.zero;
             var sprinting = sprintAction != null && sprintAction.IsPressed();
             var speed = sprinting ? sprintSpeed : walkSpeed;
             var move = (transform.right * input.x + transform.forward * input.y) * speed;
