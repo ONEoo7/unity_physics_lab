@@ -23,28 +23,37 @@ namespace PhysicsLab.Framework
             interactor = GetComponentInChildren<Interactor>();
         }
 
+        private bool subscribed;
+
         private void OnEnable()
         {
-            if (LabManager.Instance != null)
-            {
-                LabManager.Instance.ExperimentEntered += OnExperimentEntered;
-                LabManager.Instance.ExperimentExited += OnExperimentExited;
-                Debug.Log($"[LabPlayer] OnEnable subscribed to LabManager (instance={LabManager.Instance.name})");
-            }
-            else
-            {
-                Debug.LogWarning("[LabPlayer] OnEnable: LabManager.Instance was null, NOT subscribing. Lab will not hide on experiment enter.");
-            }
+            TrySubscribe();
             SetHubControlsActive(true);
+        }
+
+        private void Start()
+        {
+            // Safety net: if OnEnable raced ahead of LabManager.Awake (despite the
+            // execution-order attribute), Start runs strictly after all Awakes.
+            TrySubscribe();
         }
 
         private void OnDisable()
         {
-            if (LabManager.Instance != null)
+            if (subscribed && LabManager.Instance != null)
             {
                 LabManager.Instance.ExperimentEntered -= OnExperimentEntered;
                 LabManager.Instance.ExperimentExited -= OnExperimentExited;
             }
+            subscribed = false;
+        }
+
+        private void TrySubscribe()
+        {
+            if (subscribed || LabManager.Instance == null) return;
+            LabManager.Instance.ExperimentEntered += OnExperimentEntered;
+            LabManager.Instance.ExperimentExited += OnExperimentExited;
+            subscribed = true;
         }
 
         private void OnExperimentEntered(ExperimentDefinition def)

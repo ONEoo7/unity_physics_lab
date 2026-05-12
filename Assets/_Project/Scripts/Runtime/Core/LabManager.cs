@@ -5,6 +5,10 @@ using UnityEngine.SceneManagement;
 
 namespace PhysicsLab.Core
 {
+    // Force LabManager to initialize before anything else so that other components
+    // (LabPlayer, ExperimentBase, ...) can rely on LabManager.Instance being set in
+    // their own Awake/OnEnable.
+    [DefaultExecutionOrder(-1000)]
     public sealed class LabManager : MonoBehaviour
     {
         public static LabManager Instance { get; private set; }
