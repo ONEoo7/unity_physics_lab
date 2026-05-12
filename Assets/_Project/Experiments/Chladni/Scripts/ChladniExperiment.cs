@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using PhysicsLab.Core;
 using TMPro;
 using UnityEngine;
@@ -33,7 +34,11 @@ namespace PhysicsLab.Experiments.Chladni
         [SerializeField] private float maxFrequency = 1850f;
         [SerializeField] private ModeEntry[] modes = DefaultModes();
 
+        [Header("Reset behavior")]
+        [SerializeField, Min(0f)] private float resetDebounceSeconds = 0.3f;
+
         private float currentFrequency;
+        private Coroutine pendingReset;
 
         private static ModeEntry[] DefaultModes() => new[]
         {
@@ -87,12 +92,24 @@ namespace PhysicsLab.Experiments.Chladni
             if (frequencySlider != null) frequencySlider.onValueChanged.RemoveListener(SetFrequency);
             if (audioToggle != null) audioToggle.onValueChanged.RemoveListener(SetAudio);
             if (resetButton != null) resetButton.onClick.RemoveListener(ResetGrains);
+            if (pendingReset != null) { StopCoroutine(pendingReset); pendingReset = null; }
         }
 
         private void SetFrequency(float frequency)
         {
+            bool changed = !Mathf.Approximately(frequency, currentFrequency);
             currentFrequency = frequency;
             if (sineTone != null) sineTone.Frequency = frequency;
+
+            // Debounced reset: each frequency change restarts the timer, so dragging
+            // the slider doesn't continuously re-randomize. Once the slider stays
+            // still for resetDebounceSeconds, particles re-spawn random and converge
+            // to the pattern for the selected frequency.
+            if (changed && isActiveAndEnabled)
+            {
+                if (pendingReset != null) StopCoroutine(pendingReset);
+                pendingReset = StartCoroutine(ResetAfterDelay(resetDebounceSeconds));
+            }
 
             ResolveBlend(frequency, out int iA, out int iB, out float blend);
             var a = modes[iA];
@@ -125,6 +142,13 @@ namespace PhysicsLab.Experiments.Chladni
         private void ResetGrains()
         {
             if (simulator != null) simulator.ResetGrains();
+        }
+
+        private IEnumerator ResetAfterDelay(float seconds)
+        {
+            yield return new WaitForSeconds(seconds);
+            ResetGrains();
+            pendingReset = null;
         }
 
         private void ResolveBlend(float frequency, out int iA, out int iB, out float blend)
