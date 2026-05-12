@@ -1,0 +1,62 @@
+# Default: normalize line endings on commit, leave OS default on checkout.
+* text=auto eol=lf
+
+# Unity YAML assets — force LF, force text diff
+*.unity         text eol=lf
+*.asset         text eol=lf
+*.prefab        text eol=lf
+*.mat           text eol=lf
+*.anim          text eol=lf
+*.controller    text eol=lf
+*.overrideController text eol=lf
+*.preset        text eol=lf
+*.lighting      text eol=lf
+*.physicsMaterial text eol=lf
+*.physicsMaterial2D text eol=lf
+*.playable      text eol=lf
+*.guiskin       text eol=lf
+*.fontsettings  text eol=lf
+*.meta          text eol=lf
+*.inputactions  text eol=lf
+*.shadergraph   text eol=lf
+*.shadersubgraph text eol=lf
+*.vfx           text eol=lf
+
+# Source
+*.cs            text eol=lf diff=csharp
+*.shader        text eol=lf
+*.cginc         text eol=lf
+*.compute       text eol=lf
+*.hlsl          text eol=lf
+*.json          text eol=lf
+*.md            text eol=lf
+
+# Binary assets — never diff, never touch line endings
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.bmp   binary
+*.tga   binary
+*.tif   binary
+*.tiff  binary
+*.psd   binary
+*.exr   binary
+*.hdr   binary
+*.fbx   binary
+*.obj   binary
+*.dae   binary
+*.blend binary
+*.3ds   binary
+*.wav   binary
+*.mp3   binary
+*.ogg   binary
+*.flac  binary
+*.mp4   binary
+*.mov   binary
+*.webm  binary
+*.dll   binary
+*.so    binary
+*.dylib binary
+*.pdb   binary
+*.unitypackage binary
