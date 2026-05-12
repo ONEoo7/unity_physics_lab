@@ -425,7 +425,12 @@ namespace PhysicsLab.EditorTools
             cam.tag = "MainCamera";
             cam.transform.position = new Vector3(0f, 2.2f, -0.7f);
             cam.transform.rotation = Quaternion.Euler(60f, 0f, 0f);
-            cam.GetComponent<Camera>().fieldOfView = 50f;
+            var camComp = cam.GetComponent<Camera>();
+            camComp.fieldOfView = 50f;
+            // No skybox in the experiment — the lab environment is hidden, so a
+            // dark solid color reads as a neutral studio background.
+            camComp.clearFlags = CameraClearFlags.SolidColor;
+            camComp.backgroundColor = new Color(0.08f, 0.09f, 0.11f);
 
             // UI for controls + exit.
             var ui = CreateChladniUi(out var slider, out var audioToggle, out var resetButton,
