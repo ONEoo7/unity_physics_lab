@@ -28,13 +28,19 @@ namespace PhysicsLab.Experiments.Chladni
         [SerializeField] private float jitterStrength = 0.12f;
         [SerializeField, Range(0f, 1f)] private float settleDamping = 0.05f;
         [SerializeField] private float maxStepPerFrame = 0.02f;
+        [SerializeField, Min(0f)] private float resetTransitionSeconds = 0.4f;
 
         private NativeArray<float2> positions;
         private NativeArray<uint> randomStates;
         private NativeArray<Matrix4x4> matrices;
+        private NativeArray<float2> resetSrc;
+        private NativeArray<float2> resetDst;
         private Matrix4x4[] renderBatch;
         private JobHandle handle;
         private bool initialized;
+
+        private bool inTransition;
+        private float transitionElapsed;
 
         public int GrainCount => positions.IsCreated ? positions.Length : 0;
 
@@ -48,6 +54,8 @@ namespace PhysicsLab.Experiments.Chladni
             positions = new NativeArray<float2>(count, Allocator.Persistent);
             randomStates = new NativeArray<uint>(count, Allocator.Persistent);
             matrices = new NativeArray<Matrix4x4>(count, Allocator.Persistent);
+            resetSrc = new NativeArray<float2>(count, Allocator.Persistent);
+            resetDst = new NativeArray<float2>(count, Allocator.Persistent);
             renderBatch = new Matrix4x4[1023];
 
             var rng = new System.Random(12345);
@@ -63,11 +71,29 @@ namespace PhysicsLab.Experiments.Chladni
         {
             if (!initialized) return;
             handle.Complete();
+
+            // Snapshot the current positions as the transition source and fill the
+            // target with fresh random spread. The transition job lerps src → dst
+            // with a smoothstep over resetTransitionSeconds so grains glide instead
+            // of teleporting.
+            NativeArray<float2>.Copy(positions, resetSrc);
             var rng = new System.Random(Environment.TickCount);
             for (int i = 0; i < positions.Length; i++)
             {
-                positions[i] = new float2((float)rng.NextDouble(), (float)rng.NextDouble());
+                resetDst[i] = new float2((float)rng.NextDouble(), (float)rng.NextDouble());
                 randomStates[i] = (uint)(rng.Next(1, int.MaxValue));
+            }
+
+            if (resetTransitionSeconds <= 0f)
+            {
+                NativeArray<float2>.Copy(resetDst, positions);
+                inTransition = false;
+                transitionElapsed = 0f;
+            }
+            else
+            {
+                inTransition = true;
+                transitionElapsed = 0f;
             }
         }
 
@@ -87,7 +113,28 @@ namespace PhysicsLab.Experiments.Chladni
             var origin = (plate != null ? plate.position : transform.position)
                          - new Vector3(plateSize * 0.5f, 0f, plateSize * 0.5f);
 
-            var job = new ChladniSaltJob
+            if (inTransition)
+            {
+                transitionElapsed += Time.deltaTime;
+                float alpha = Mathf.Clamp01(transitionElapsed / resetTransitionSeconds);
+                handle = new ChladniTransitionJob
+                {
+                    Src = resetSrc,
+                    Dst = resetDst,
+                    Positions = positions,
+                    Matrices = matrices,
+                    Alpha = alpha,
+                    PlateOrigin = origin,
+                    PlateSize = plateSize,
+                    GrainScale = grainScale,
+                    GrainHeight = grainLift,
+                }.Schedule(positions.Length, 256);
+
+                if (alpha >= 1f) inTransition = false;
+                return;
+            }
+
+            handle = new ChladniSaltJob
             {
                 Positions = positions,
                 RandomStates = randomStates,
@@ -103,8 +150,7 @@ namespace PhysicsLab.Experiments.Chladni
                 PlateSize = plateSize,
                 GrainScale = grainScale,
                 GrainHeight = grainLift,
-            };
-            handle = job.Schedule(positions.Length, 256);
+            }.Schedule(positions.Length, 256);
         }
 
         private void LateUpdate()
@@ -131,6 +177,8 @@ namespace PhysicsLab.Experiments.Chladni
             if (positions.IsCreated) positions.Dispose();
             if (randomStates.IsCreated) randomStates.Dispose();
             if (matrices.IsCreated) matrices.Dispose();
+            if (resetSrc.IsCreated) resetSrc.Dispose();
+            if (resetDst.IsCreated) resetDst.Dispose();
         }
     }
 }
