@@ -420,13 +420,14 @@ namespace PhysicsLab.EditorTools
             var experimentGo = new GameObject("ChladniExperiment");
             var experiment = experimentGo.AddComponent<ChladniExperiment>();
 
-            // Camera.
+            // Camera: tabletop view — angled enough to see the plate's top
+            // surface clearly while the stand stays visible underneath.
             var cam = new GameObject("Camera", typeof(Camera), typeof(AudioListener));
             cam.tag = "MainCamera";
-            cam.transform.position = new Vector3(0f, 2.2f, -0.7f);
-            cam.transform.rotation = Quaternion.Euler(60f, 0f, 0f);
+            cam.transform.position = new Vector3(0f, 1.7f, -1.4f);
+            cam.transform.rotation = Quaternion.Euler(30f, 0f, 0f);
             var camComp = cam.GetComponent<Camera>();
-            camComp.fieldOfView = 50f;
+            camComp.fieldOfView = 45f;
             // No skybox in the experiment — the lab environment is hidden, so a
             // dark solid color reads as a neutral studio background.
             camComp.clearFlags = CameraClearFlags.SolidColor;
