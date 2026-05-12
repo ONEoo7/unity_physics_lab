@@ -29,6 +29,11 @@ namespace PhysicsLab.Framework
             {
                 LabManager.Instance.ExperimentEntered += OnExperimentEntered;
                 LabManager.Instance.ExperimentExited += OnExperimentExited;
+                Debug.Log($"[LabPlayer] OnEnable subscribed to LabManager (instance={LabManager.Instance.name})");
+            }
+            else
+            {
+                Debug.LogWarning("[LabPlayer] OnEnable: LabManager.Instance was null, NOT subscribing. Lab will not hide on experiment enter.");
             }
             SetHubControlsActive(true);
         }
@@ -42,11 +47,22 @@ namespace PhysicsLab.Framework
             }
         }
 
-        private void OnExperimentEntered(ExperimentDefinition _) => SetHubControlsActive(false);
-        private void OnExperimentExited() => SetHubControlsActive(true);
+        private void OnExperimentEntered(ExperimentDefinition def)
+        {
+            Debug.Log($"[LabPlayer] OnExperimentEntered fired for '{def?.Title}', disabling hub.");
+            SetHubControlsActive(false);
+        }
+
+        private void OnExperimentExited()
+        {
+            Debug.Log("[LabPlayer] OnExperimentExited fired, re-enabling hub.");
+            SetHubControlsActive(true);
+        }
 
         private void SetHubControlsActive(bool active)
         {
+            Debug.Log($"[LabPlayer] SetHubControlsActive({active}) | controller={(controller != null)} interactor={(interactor != null)} playerView={(playerView != null)} hubHud={(hubHud != null)} labEnvironment={(labEnvironment != null ? labEnvironment.name : "NULL")}");
+
             if (controller != null) controller.enabled = active;
             if (interactor != null) interactor.enabled = active;
             if (playerView != null) playerView.SetActive(active);
@@ -67,13 +83,16 @@ namespace PhysicsLab.Framework
         {
             var scene = gameObject.scene;
             if (!scene.IsValid()) return;
+            int hidden = 0;
             foreach (var root in scene.GetRootGameObjects())
             {
                 if (root == gameObject) continue;            // keep us alive for events
                 if (!root.activeSelf) continue;              // already hidden
                 root.SetActive(false);
                 hiddenLabRoots.Add(root);
+                hidden++;
             }
+            Debug.Log($"[LabPlayer] HideOtherLabRoots: hid {hidden} root(s) in scene '{scene.name}'.");
         }
 
         private void RestoreOtherLabRoots()
