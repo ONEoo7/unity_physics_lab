@@ -44,10 +44,16 @@ namespace PhysicsLab.EditorTools
             EnsureFolders();
 
             var definition = CreateOrUpdateDefinition();
-            var inputRefs = LoadInputActionReferences();
+            var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(InputActionsPath);
+            if (inputAsset == null)
+            {
+                Debug.LogWarning(
+                    $"[LabScaffolder] Could not load InputActionAsset at {InputActionsPath}; "
+                    + "controllers will have a null asset reference.");
+            }
 
-            BuildLabScene(definition, inputRefs);
-            BuildChladniScene(definition, inputRefs);
+            BuildLabScene(definition, inputAsset);
+            BuildChladniScene(definition, inputAsset);
             AddScenesToBuildSettings();
 
             AssetDatabase.SaveAssets();
@@ -115,27 +121,13 @@ namespace PhysicsLab.EditorTools
             return def;
         }
 
-        private static Dictionary<string, InputActionReference> LoadInputActionReferences()
-        {
-            var refs = AssetDatabase.LoadAllAssetsAtPath(InputActionsPath)
-                .OfType<InputActionReference>()
-                .ToList();
-            var byName = new Dictionary<string, InputActionReference>();
-            foreach (var r in refs)
-            {
-                if (r == null || r.action == null) continue;
-                if (!byName.ContainsKey(r.action.name)) byName[r.action.name] = r;
-            }
-            return byName;
-        }
-
         // -----------------------------------------------------------------
         // Lab scene
         // -----------------------------------------------------------------
 
         private static void BuildLabScene(
             ExperimentDefinition chladniDefinition,
-            Dictionary<string, InputActionReference> inputRefs)
+            InputActionAsset inputAsset)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -157,7 +149,7 @@ namespace PhysicsLab.EditorTools
             BuildRoom(roomMat, size: new Vector3(12f, 3.2f, 12f));
 
             // Player.
-            var player = CreatePlayer(inputRefs);
+            var player = CreatePlayer(inputAsset);
 
             // LabManager.
             var labManagerGo = new GameObject("LabManager");
@@ -223,7 +215,7 @@ namespace PhysicsLab.EditorTools
             wall.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
-        private static GameObject CreatePlayer(Dictionary<string, InputActionReference> inputRefs)
+        private static GameObject CreatePlayer(InputActionAsset inputAsset)
         {
             var player = new GameObject("Player");
             player.transform.position = new Vector3(0f, 0f, -3f);
@@ -250,15 +242,12 @@ namespace PhysicsLab.EditorTools
 
             var soFps = new SerializedObject(fps);
             soFps.FindProperty("cameraPivot").objectReferenceValue = pivot.transform;
-            AssignInputRef(soFps, "moveAction", inputRefs, "Move");
-            AssignInputRef(soFps, "lookAction", inputRefs, "Look");
-            AssignInputRef(soFps, "jumpAction", inputRefs, "Jump");
-            AssignInputRef(soFps, "sprintAction", inputRefs, "Sprint");
+            soFps.FindProperty("inputActions").objectReferenceValue = inputAsset;
             soFps.ApplyModifiedPropertiesWithoutUndo();
 
             var soInt = new SerializedObject(interactor);
             soInt.FindProperty("viewCamera").objectReferenceValue = cam;
-            AssignInputRef(soInt, "interactAction", inputRefs, "Interact");
+            soInt.FindProperty("inputActions").objectReferenceValue = inputAsset;
             soInt.ApplyModifiedPropertiesWithoutUndo();
 
             var labPlayer = player.AddComponent<LabPlayer>();
@@ -269,13 +258,6 @@ namespace PhysicsLab.EditorTools
             soLp.ApplyModifiedPropertiesWithoutUndo();
 
             return player;
-        }
-
-        private static void AssignInputRef(SerializedObject so, string field,
-            Dictionary<string, InputActionReference> refs, string actionName)
-        {
-            if (!refs.TryGetValue(actionName, out var r)) return;
-            so.FindProperty(field).objectReferenceValue = r;
         }
 
         private static GameObject CreateLabHud(out InteractionPromptUI promptUI)
@@ -358,7 +340,7 @@ namespace PhysicsLab.EditorTools
 
         private static void BuildChladniScene(
             ExperimentDefinition definition,
-            Dictionary<string, InputActionReference> inputRefs)
+            InputActionAsset inputAsset)
         {
             EnsureFolder(Path.GetDirectoryName(ChladniScenePath).Replace("\\", "/"));
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -416,7 +398,7 @@ namespace PhysicsLab.EditorTools
 
             // UI for controls + exit.
             var ui = CreateChladniUi(out var slider, out var audioToggle, out var resetButton,
-                out var freqLabel, out var modeLabel, out var exitButton, inputRefs);
+                out var freqLabel, out var modeLabel, out var exitButton, inputAsset);
 
             var soExp = new SerializedObject(experiment);
             soExp.FindProperty("simulator").objectReferenceValue = simulator;
@@ -440,7 +422,7 @@ namespace PhysicsLab.EditorTools
         private static GameObject CreateChladniUi(
             out Slider slider, out Toggle audioToggle, out Button resetButton,
             out TMP_Text freqLabel, out TMP_Text modeLabel, out Button exitButton,
-            Dictionary<string, InputActionReference> inputRefs)
+            InputActionAsset inputAsset)
         {
             var canvasGo = new GameObject("UI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = canvasGo.GetComponent<Canvas>();
@@ -491,7 +473,7 @@ namespace PhysicsLab.EditorTools
             var exit = exitButton.gameObject.AddComponent<ExitExperimentButton>();
             var soExit = new SerializedObject(exit);
             soExit.FindProperty("button").objectReferenceValue = exitButton;
-            AssignInputRef(soExit, "cancelAction", inputRefs, "Cancel");
+            soExit.FindProperty("inputActions").objectReferenceValue = inputAsset;
             soExit.ApplyModifiedPropertiesWithoutUndo();
 
             if (Object.FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsSortMode.None).Length == 0)

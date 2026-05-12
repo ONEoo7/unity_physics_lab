@@ -9,11 +9,15 @@ namespace PhysicsLab.Framework
         [SerializeField] private Camera viewCamera;
         [SerializeField] private float maxDistance = 3.0f;
         [SerializeField] private LayerMask interactableLayers = ~0;
-        [SerializeField] private InputActionReference interactAction;
+
+        [Header("Input")]
+        [SerializeField] private InputActionAsset inputActions;
+        [SerializeField] private string interactActionName = "Interact";
 
         public event Action<IInteractable> CurrentChanged;
 
         private IInteractable current;
+        private InputAction interactAction;
 
         public IInteractable Current
         {
@@ -29,23 +33,22 @@ namespace PhysicsLab.Framework
         private void Awake()
         {
             if (viewCamera == null) viewCamera = Camera.main;
+            if (inputActions != null)
+                interactAction = inputActions.FindAction(interactActionName, throwIfNotFound: false);
         }
 
         private void OnEnable()
         {
-            if (interactAction != null && interactAction.action != null)
+            if (interactAction != null)
             {
-                interactAction.action.performed += OnInteract;
-                interactAction.action.Enable();
+                interactAction.performed += OnInteract;
+                interactAction.Enable();
             }
         }
 
         private void OnDisable()
         {
-            if (interactAction != null && interactAction.action != null)
-            {
-                interactAction.action.performed -= OnInteract;
-            }
+            if (interactAction != null) interactAction.performed -= OnInteract;
         }
 
         private void Update()

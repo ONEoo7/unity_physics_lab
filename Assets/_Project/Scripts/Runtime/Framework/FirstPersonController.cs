@@ -19,12 +19,17 @@ namespace PhysicsLab.Framework
         [SerializeField] private float pitchMax = 85f;
 
         [Header("Input")]
-        [SerializeField] private InputActionReference moveAction;
-        [SerializeField] private InputActionReference lookAction;
-        [SerializeField] private InputActionReference jumpAction;
-        [SerializeField] private InputActionReference sprintAction;
+        [SerializeField] private InputActionAsset inputActions;
+        [SerializeField] private string moveActionName = "Move";
+        [SerializeField] private string lookActionName = "Look";
+        [SerializeField] private string jumpActionName = "Jump";
+        [SerializeField] private string sprintActionName = "Sprint";
 
         private CharacterController controller;
+        private InputAction moveAction;
+        private InputAction lookAction;
+        private InputAction jumpAction;
+        private InputAction sprintAction;
         private float pitch;
         private float yaw;
         private float verticalVelocity;
@@ -34,14 +39,22 @@ namespace PhysicsLab.Framework
             controller = GetComponent<CharacterController>();
             yaw = transform.eulerAngles.y;
             if (cameraPivot != null) pitch = cameraPivot.localEulerAngles.x;
+
+            if (inputActions != null)
+            {
+                moveAction = inputActions.FindAction(moveActionName, throwIfNotFound: false);
+                lookAction = inputActions.FindAction(lookActionName, throwIfNotFound: false);
+                jumpAction = inputActions.FindAction(jumpActionName, throwIfNotFound: false);
+                sprintAction = inputActions.FindAction(sprintActionName, throwIfNotFound: false);
+            }
         }
 
         private void OnEnable()
         {
-            EnableAction(moveAction);
-            EnableAction(lookAction);
-            EnableAction(jumpAction);
-            EnableAction(sprintAction);
+            moveAction?.Enable();
+            lookAction?.Enable();
+            jumpAction?.Enable();
+            sprintAction?.Enable();
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
@@ -52,11 +65,6 @@ namespace PhysicsLab.Framework
             Cursor.visible = true;
         }
 
-        private static void EnableAction(InputActionReference reference)
-        {
-            if (reference != null && reference.action != null) reference.action.Enable();
-        }
-
         private void Update()
         {
             HandleLook();
@@ -65,8 +73,8 @@ namespace PhysicsLab.Framework
 
         private void HandleLook()
         {
-            if (cameraPivot == null || lookAction == null || lookAction.action == null) return;
-            var delta = lookAction.action.ReadValue<Vector2>();
+            if (cameraPivot == null || lookAction == null) return;
+            var delta = lookAction.ReadValue<Vector2>();
             yaw += delta.x * lookSensitivity;
             pitch = Mathf.Clamp(pitch - delta.y * lookSensitivity, pitchMin, pitchMax);
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
@@ -75,23 +83,16 @@ namespace PhysicsLab.Framework
 
         private void HandleMove()
         {
-            var input = moveAction != null && moveAction.action != null
-                ? moveAction.action.ReadValue<Vector2>()
-                : Vector2.zero;
-
-            var sprinting = sprintAction != null
-                            && sprintAction.action != null
-                            && sprintAction.action.IsPressed();
+            var input = moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
+            var sprinting = sprintAction != null && sprintAction.IsPressed();
             var speed = sprinting ? sprintSpeed : walkSpeed;
             var move = (transform.right * input.x + transform.forward * input.y) * speed;
 
             if (controller.isGrounded)
             {
                 if (verticalVelocity < 0f) verticalVelocity = -2f;
-                var jumpPressed = jumpAction != null
-                                  && jumpAction.action != null
-                                  && jumpAction.action.WasPressedThisFrame();
-                if (jumpPressed) verticalVelocity = Mathf.Sqrt(-2f * gravity * jumpHeight);
+                if (jumpAction != null && jumpAction.WasPressedThisFrame())
+                    verticalVelocity = Mathf.Sqrt(-2f * gravity * jumpHeight);
             }
 
             verticalVelocity += gravity * Time.deltaTime;
