@@ -41,14 +41,16 @@ namespace PhysicsLab.Framework
         {
             if (interactAction != null)
             {
-                interactAction.performed += OnInteract;
+                // URP template's Interact action has a Hold interaction, so `performed`
+                // waits 0.4s. Subscribe to `started` so a tap is enough to trigger.
+                interactAction.started += OnInteract;
                 interactAction.Enable();
             }
         }
 
         private void OnDisable()
         {
-            if (interactAction != null) interactAction.performed -= OnInteract;
+            if (interactAction != null) interactAction.started -= OnInteract;
         }
 
         private void Update()
