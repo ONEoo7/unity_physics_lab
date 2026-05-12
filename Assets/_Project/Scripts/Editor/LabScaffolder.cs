@@ -131,8 +131,13 @@ namespace PhysicsLab.EditorTools
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
+            // Group everything visible/lit under one root so the experiment camera
+            // can hide it via a single SetActive call.
+            var environment = new GameObject("LabEnvironment");
+
             // Lighting.
             var sun = new GameObject("Directional Light");
+            sun.transform.SetParent(environment.transform, false);
             var light = sun.AddComponent<Light>();
             light.type = LightType.Directional;
             light.intensity = 1.1f;
@@ -146,7 +151,7 @@ namespace PhysicsLab.EditorTools
 
             // Room.
             var roomMat = CreateOrLoadMaterial("LabRoom", new Color(0.78f, 0.78f, 0.80f));
-            BuildRoom(roomMat, size: new Vector3(12f, 3.2f, 12f));
+            BuildRoom(environment.transform, roomMat, size: new Vector3(12f, 3.2f, 12f));
 
             // Player.
             var player = CreatePlayer(inputAsset);
@@ -168,47 +173,51 @@ namespace PhysicsLab.EditorTools
             var labPlayer = player.GetComponent<LabPlayer>();
             var soPlayer = new SerializedObject(labPlayer);
             soPlayer.FindProperty("hubHud").objectReferenceValue = hud;
+            soPlayer.FindProperty("labEnvironment").objectReferenceValue = environment;
             soPlayer.ApplyModifiedPropertiesWithoutUndo();
 
             // Station pedestal.
-            CreateStation(chladniDefinition, new Vector3(2.0f, 0f, 2.0f));
+            CreateStation(environment.transform, chladniDefinition, new Vector3(2.0f, 0f, 2.0f));
 
             // Skybox / volume — keep default URP volume profile.
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, LabScenePath);
         }
 
-        private static void BuildRoom(Material mat, Vector3 size)
+        private static void BuildRoom(Transform parent, Material mat, Vector3 size)
         {
             // Floor.
             var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Floor";
+            floor.transform.SetParent(parent, false);
             floor.transform.localScale = new Vector3(size.x / 10f, 1f, size.z / 10f);
             floor.GetComponent<MeshRenderer>().sharedMaterial = mat;
 
             // Ceiling.
             var ceiling = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ceiling.name = "Ceiling";
+            ceiling.transform.SetParent(parent, false);
             ceiling.transform.position = new Vector3(0f, size.y, 0f);
             ceiling.transform.rotation = Quaternion.Euler(180f, 0f, 0f);
             ceiling.transform.localScale = new Vector3(size.x / 10f, 1f, size.z / 10f);
             ceiling.GetComponent<MeshRenderer>().sharedMaterial = mat;
 
             // Walls.
-            CreateWall("Wall+X", new Vector3(size.x * 0.5f, size.y * 0.5f, 0f), Quaternion.Euler(0f, 0f, 90f),
+            CreateWall(parent, "Wall+X", new Vector3(size.x * 0.5f, size.y * 0.5f, 0f), Quaternion.Euler(0f, 0f, 90f),
                 new Vector3(size.y / 10f, 1f, size.z / 10f), mat);
-            CreateWall("Wall-X", new Vector3(-size.x * 0.5f, size.y * 0.5f, 0f), Quaternion.Euler(0f, 0f, -90f),
+            CreateWall(parent, "Wall-X", new Vector3(-size.x * 0.5f, size.y * 0.5f, 0f), Quaternion.Euler(0f, 0f, -90f),
                 new Vector3(size.y / 10f, 1f, size.z / 10f), mat);
-            CreateWall("Wall+Z", new Vector3(0f, size.y * 0.5f, size.z * 0.5f), Quaternion.Euler(-90f, 0f, 0f),
+            CreateWall(parent, "Wall+Z", new Vector3(0f, size.y * 0.5f, size.z * 0.5f), Quaternion.Euler(-90f, 0f, 0f),
                 new Vector3(size.x / 10f, 1f, size.y / 10f), mat);
-            CreateWall("Wall-Z", new Vector3(0f, size.y * 0.5f, -size.z * 0.5f), Quaternion.Euler(90f, 0f, 0f),
+            CreateWall(parent, "Wall-Z", new Vector3(0f, size.y * 0.5f, -size.z * 0.5f), Quaternion.Euler(90f, 0f, 0f),
                 new Vector3(size.x / 10f, 1f, size.y / 10f), mat);
         }
 
-        private static void CreateWall(string name, Vector3 pos, Quaternion rot, Vector3 scale, Material mat)
+        private static void CreateWall(Transform parent, string name, Vector3 pos, Quaternion rot, Vector3 scale, Material mat)
         {
             var wall = GameObject.CreatePrimitive(PrimitiveType.Plane);
             wall.name = name;
+            wall.transform.SetParent(parent, false);
             wall.transform.position = pos;
             wall.transform.rotation = rot;
             wall.transform.localScale = scale;
@@ -305,10 +314,11 @@ namespace PhysicsLab.EditorTools
             return hud;
         }
 
-        private static void CreateStation(ExperimentDefinition def, Vector3 position)
+        private static void CreateStation(Transform parent, ExperimentDefinition def, Vector3 position)
         {
             var pedestal = GameObject.CreatePrimitive(PrimitiveType.Cube);
             pedestal.name = $"Station_{def.Title}";
+            pedestal.transform.SetParent(parent, false);
             pedestal.transform.position = position + new Vector3(0f, 0.5f, 0f);
             pedestal.transform.localScale = new Vector3(0.8f, 1.0f, 0.8f);
 
@@ -363,6 +373,27 @@ namespace PhysicsLab.EditorTools
             plateMesh.GetComponent<MeshRenderer>().sharedMaterial =
                 CreateOrLoadMaterial("Plate", new Color(0.10f, 0.10f, 0.12f));
             Object.DestroyImmediate(plateMesh.GetComponent<BoxCollider>());
+
+            // Stand under the plate so it doesn't look like it's floating.
+            var stand = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            stand.name = "Stand";
+            // Plate bottom is at world y=0.89 (pivot 0.9 minus half-thickness 0.01).
+            // Center the stand from y=0 to y=0.89.
+            stand.transform.position = new Vector3(0f, 0.445f, 0f);
+            stand.transform.localScale = new Vector3(0.5f, 0.89f, 0.5f);
+            stand.GetComponent<MeshRenderer>().sharedMaterial =
+                CreateOrLoadMaterial("Stand", new Color(0.22f, 0.45f, 0.78f));
+            Object.DestroyImmediate(stand.GetComponent<BoxCollider>());
+
+            // A subtle floor under the stand so the scene doesn't drop into void
+            // when the lab environment is hidden.
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            floor.name = "ExperimentFloor";
+            floor.transform.position = new Vector3(0f, 0f, 0f);
+            floor.transform.localScale = new Vector3(1.5f, 1f, 1.5f);
+            floor.GetComponent<MeshRenderer>().sharedMaterial =
+                CreateOrLoadMaterial("ExperimentFloor", new Color(0.15f, 0.16f, 0.18f));
+            Object.DestroyImmediate(floor.GetComponent<MeshCollider>());
 
             // Salt simulator on plate.
             var simulator = plateRoot.AddComponent<ChladniSaltSimulator>();

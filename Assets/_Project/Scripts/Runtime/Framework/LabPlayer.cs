@@ -9,6 +9,7 @@ namespace PhysicsLab.Framework
         [SerializeField] private Interactor interactor;
         [SerializeField] private GameObject playerView;
         [SerializeField] private GameObject hubHud;
+        [SerializeField] private GameObject labEnvironment;
 
         private void Reset()
         {
@@ -44,6 +45,9 @@ namespace PhysicsLab.Framework
             if (interactor != null) interactor.enabled = active;
             if (playerView != null) playerView.SetActive(active);
             if (hubHud != null) hubHud.SetActive(active);
+            // Hide the lab room, lights, and station pedestals so the experiment
+            // camera doesn't render them peeking into its frame.
+            if (labEnvironment != null) labEnvironment.SetActive(active);
 
             Cursor.lockState = active ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !active;
